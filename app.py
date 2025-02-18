@@ -1,3 +1,5 @@
+import json
+
 from dotenv import load_dotenv
 from flask import Flask, request
 import os
@@ -48,6 +50,20 @@ def on_incoming_message():
     ai_response = chat_session.send_message(incoming_message)
 
     print(f"AI Response: {ai_response.text}")  # Log AI the response
+    if "[FOR_BACKEND]" in ai_response.text:
+        user_confirmation, be_data = ai_response.text.split("[FOR_BACKEND]")
+        try:
+            message = client.messages.create(
+                body=user_confirmation.split("[USER]")[1],
+                from_=f'whatsapp:{os.getenv("TWILIO_PHONE")}',
+                to=phone_number
+            )
+            print(f"Message sent to {phone_number}. SID: {message.sid}")  # Log message SID for tracking
+        except Exception as e:
+            print(f"Error sending message via Twilio: {e}")
+        be_data = json.loads(be_data)
+
+        return ""
 
     try:
         message = client.messages.create(
