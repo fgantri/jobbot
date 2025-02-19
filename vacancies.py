@@ -91,3 +91,4 @@ class Vacancies:
             print('Impossible to parse json')
         except Exception as e:
             print(f"Such error occurred: {e}")
+        return 'Sorry, nothing was found.'

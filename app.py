@@ -1,22 +1,24 @@
 import json
 import pdfkit
+from typing import Final
 from dotenv import load_dotenv
 from flask import Flask, request, send_file, render_template
 import os
 from twilio.rest import Client
 import google.generativeai as genai
 import re
-from twilio.twiml.messaging_response import MessagingResponse
 from vacancies import Vacancies
 
 load_dotenv(".env")
 
-account_sid = os.getenv("ACCOUNT_SID")
-auth_token = os.getenv("AUTH_TOKEN")
-client = Client(account_sid, auth_token)
+# twilio
+ACCOUNT_SID: Final[str] = os.getenv("ACCOUNT_SID")
+TWILIO_AUTH_TOKEN: Final[str] = os.getenv("AUTH_TOKEN")
+client = Client(ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+# Gemini AI
 genai.configure(api_key=os.getenv("AI_API_KEY"))
 
-# Create the model
 generation_config = genai.GenerationConfig(
     temperature=1,
     top_p=0.95,
@@ -39,10 +41,13 @@ chat_session = model.start_chat(
   ]
 )
 
+# Server
+
 app = Flask(__name__)
 
 @app.route("/resume")
 def serve_pdf():
+    """host generated pdf file"""
     return send_file("resume.pdf", mimetype="application/pdf")
 
 
@@ -71,12 +76,15 @@ def on_incoming_message():
         )
         jobs = Vacancies.get_vacancies_info_list(vac.get_vacancies_id_list())
         jobs_text = ""
-        for job in jobs:
-            jobs_text += f"*Job Title:* \n{job["title"]}\n"
-            jobs_text += f"*Company:* \n{job["company_name"]}\n"
-            jobs_text += f"*Seniority:* \n{job["seniority"]}\n"
-            jobs_text += f"*URL:* \n{job["url"]}\n"
-            jobs_text += f"\n\n"
+        if type(jobs) == list:
+            for job in jobs:
+                jobs_text += f"*Job Title:* \n{job["title"]}\n"
+                jobs_text += f"*Company:* \n{job["company_name"]}\n"
+                jobs_text += f"*Seniority:* \n{job["seniority"]}\n"
+                jobs_text += f"*URL:* \n{job["url"]}\n"
+                jobs_text += f"\n\n"
+        else:
+            jobs_text = jobs
         print(jobs_text)
         send(jobs_text, phone_number)
 
